@@ -248,15 +248,15 @@ void BasicScene::cost_calc(int edge)
     int v2 = data->E(edge, 1);
     Matrix4d Q_edge = data->Q_matrix[v1] + data->Q_matrix[v2];
     
-    // We will use this to find v' position
+    // new_v pos fining
     Matrix4d Q_position = Q_edge;
     Q_position.row(3) = Vector4d(0, 0, 0, 1);
     Vector4d v_position;
     double cost;
-    bool isInversable;
-    Q_position.computeInverseWithCheck(Q_position, isInversable);
+    bool isInvertible;
+    Q_position.computeInverseWithCheck(Q_position, isInvertible);
 
-    if (isInversable)
+    if (isInvertible)
     {
         v_position = Q_position * (Vector4d(0, 0, 0, 1));
         cost = v_position.transpose() * Q_edge * v_position;
