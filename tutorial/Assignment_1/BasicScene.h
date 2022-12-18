@@ -52,10 +52,20 @@ public:
     void cost_calc(int edge);
     void modified_simplification();
     bool modified_collapse_edge();
+    void place_objs(shared_ptr<cg3d::Model> obj1, shared_ptr<cg3d::Model> obj2);
 private:
     shared_ptr<Movable> root;
     shared_ptr<Model> bunny, sphere1, cube;
     shared_ptr<Model> autoModel;
     Data * data;
+    shared_ptr<Model> obj1;
+    shared_ptr<Model> obj2;
     typedef set<pair<double, int>> PriorityQueue;
+};
+
+// Define a struct to represent the bounding box
+struct BoundingBox
+{
+    Eigen::Vector3d min_corner;
+    Eigen::Vector3d max_corner;
 };

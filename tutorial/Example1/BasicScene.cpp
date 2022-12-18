@@ -23,7 +23,7 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
     background->SetPickable(false);
     background->SetStatic();
 
- 
+    
     auto program = std::make_shared<Program>("shaders/basicShader");
     auto material{ std::make_shared<Material>("material", program)}; // empty material
 //    SetNamedObject(cube, Model::Create, Mesh::Cube(), material, shared_from_this());

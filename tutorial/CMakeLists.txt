@@ -32,3 +32,5 @@ add_subdirectory(Example1)
 
 
 add_subdirectory(Assignment_1)
+
+add_subdirectory(Assignment_2)

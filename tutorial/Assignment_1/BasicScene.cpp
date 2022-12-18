@@ -25,8 +25,6 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
 {
     // example from internet
 
-
-
     camera = Camera::Create("camera", fov, float(width) / height, near, far);
 
     AddChild(root = Movable::Create("root")); // a common (invisible) parent object for all the shapes
@@ -48,6 +46,22 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
     auto bunnyMesh{ IglLoader::MeshFromFiles("bunny_igl","data/bunny.off") };
     auto cubeMesh{ IglLoader::MeshFromFiles("cube_igl","data/cube.off") };
 
+    // read obj1 
+ // read obj2
+
+    auto obj1_mesh = { IglLoader::MeshFromFiles("bunny_igl", "data/bunny.off") };
+    auto obj2_mesh = { IglLoader::MeshFromFiles("bunny_igl","data/bunny.off") };
+    //auto material1{ make_shared<Material>("material1", program) }; // empty material
+    //auto material2{ make_shared<Material>("material2", program) }; // empty material
+    //obj1 = Model::Create("obj1", obj1_mesh, material);
+   // obj2 = Model::Create("obj2", obj2_mesh, material);
+
+    
+
+
+ 
+
+
     sphere1 = Model::Create("sphere", sphereMesh, material);
     bunny = Model::Create("bunny", bunnyMesh, material);
     cube = Model::Create("cube", cubeMesh, material);
@@ -59,9 +73,11 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
     bunny->showWireframe = true;
     cube->showWireframe = true;
     camera->Translate(30, Axis::Z);
+    place_objs(cube, sphere1);
+
     auto mesh = sphere1->GetMeshList();
     data = new Data(mesh[0]->data[0].vertices, mesh[0]->data[0].faces);
-
+    
     
     // Start of new code
     auto morph_function = [](Model* model, cg3d::Visitor* visitor)
@@ -396,6 +412,8 @@ bool BasicScene::modified_collapse_edge()
 
 
 
+
+
 void BasicScene::KeyCallback(cg3d::Viewport* _viewport, int x, int y, int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
@@ -421,6 +439,7 @@ void BasicScene::KeyCallback(cg3d::Viewport* _viewport, int x, int y, int key, i
             break;
 
         case GLFW_KEY_SPACE:
+            //basic_simplification();
             modified_simplification();
             break;
 
@@ -439,4 +458,111 @@ void BasicScene::KeyCallback(cg3d::Viewport* _viewport, int x, int y, int key, i
             break;
         }
     }
+}
+
+// Extract the vertices of a mesh from its facets
+void extract_vertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& Vb)
+{
+    // Extract the boundary facets of the object
+    Eigen::MatrixXi B;
+    igl::boundary_facets(F, B);
+
+    // Initialize the vertex matrix
+    Vb.resize(B.rows() * 3, V.cols());
+
+    // Loop through the facets and extract the vertices
+    for (int i = 0; i < B.rows(); i++)
+    {
+        for (int j = 0; j < B.cols(); j++)
+        {
+            Vb.row((i * 3) + j) = V.row(B(i, j));
+        }
+    }
+}
+
+
+
+// Find the minimum element of a matrix
+Eigen::VectorXd min_element(const Eigen::MatrixXd& X)
+{
+    Eigen::VectorXd min_coords(X.cols());
+    for (int i = 0; i < X.cols(); i++)
+    {
+        min_coords(i) = X.col(i).minCoeff();
+    }
+    return min_coords;
+}
+
+
+// Find the maximum element of a matrix
+Eigen::VectorXd max_element(const Eigen::MatrixXd& X)
+{
+    Eigen::VectorXd max_coords(X.cols());
+    for (int i = 0; i < X.cols(); i++)
+    {
+        max_coords(i) = X.col(i).maxCoeff();
+    }
+    return max_coords;
+}
+
+BoundingBox compute_bounding_box(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F)
+{
+    
+    // Extract the vertices of the boundary facets
+    Eigen::MatrixXd Vb;
+    extract_vertices(V, F, Vb);
+
+    // Find the minimum and maximum x, y, and z coordinates of the vertices
+    Eigen::Vector3d min_coords = min_element(Vb);
+    Eigen::Vector3d max_coords = max_element(Vb);
+
+    // Define the bounding box using the min and max coordinates
+    BoundingBox bb;
+    bb.min_corner = min_coords;
+    bb.max_corner = max_coords;
+
+    return bb;
+}
+
+
+bool check_collision(const BoundingBox & box1, const BoundingBox& box2) {
+    // Check if the x coordinates of the boundary boxes overlap
+    if (std::max(box1.min_corner[0], box2.min_corner[0]) > std::min(box1.max_corner[0], box2.max_corner[0])) {
+        return false;
+    }
+
+    // Check if the y coordinates of the boundary boxes overlap
+    if (std::max(box1.min_corner[1], box2.min_corner[1]) > std::min(box1.max_corner[1], box2.max_corner[1])) {
+        return false;
+    }
+
+    // Check if the z coordinates of the boundary boxes overlap
+    if (std::max(box1.min_corner[2], box2.min_corner[2]) > std::min(box1.max_corner[2], box2.max_corner[2])) {
+        return false;
+    }
+
+    // If the x, y, and z coordinates of the boundary boxes all overlap, then the boundary boxes are intersecting
+    return true;
+}
+
+
+
+
+
+void BasicScene::place_objs(shared_ptr<cg3d::Model> obj1, shared_ptr<cg3d::Model> obj2) {
+    auto mesh1 = obj1->GetMeshList();
+    auto mesh2 = obj2->GetMeshList();
+
+    Eigen::MatrixXd V1 = mesh1[0]->data[0].vertices;
+    Eigen::MatrixXi F1 = mesh1[0]->data[0].faces; 
+    
+    Eigen::MatrixXd V2 = mesh2[0]->data[0].vertices;
+    Eigen::MatrixXi F2 = mesh2[0]->data[0].faces;
+
+    BoundingBox bb1 = compute_bounding_box(V1, F1);
+    BoundingBox bb2 = compute_bounding_box(V2, F2);
+
+    //bool intersect = check_collision(bb1, bb2);
+    //if (intersect) cout << "heeeeeeeeeeeeeeeeeeeeey!!!" << endl;
+
 }
