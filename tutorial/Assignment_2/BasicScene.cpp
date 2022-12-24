@@ -21,7 +21,7 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
 {
     camera = Camera::Create("camera", fov, float(width) / height, near, far);
 
-    AddChild(root = Movable::Create("root")); // a common (invisible) parent object for all the shapes
+    AddChild(root = Movable::Create("root")); 
     auto daylight{ std::make_shared<Material>("daylight", "shaders/cubemapShader") };
     daylight->AddTexture(0, "textures/cubemaps/Daylight Box_", 3);
     auto background{ Model::Create("background", Mesh::Cube(), daylight) };
@@ -37,7 +37,7 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
     auto hit_material{ std::make_shared<Material>("material", program) }; // hit material
 
     material->AddTexture(0, "textures/box0.bmp", 2);
-    hit_material->AddTexture(0, "textures/grass.bmp", 2);
+    hit_material->AddTexture(0, "textures/box0.bmp", 2); // make it more visible
 
     // Sphere Meshes
     auto sphereMesh1{ IglLoader::MeshFromFiles("sphere_igl", "data/sphere.obj") };
@@ -102,17 +102,17 @@ void BasicScene::Init(float fov, int width, int height, float near, float far)
     auto mesh = autoModel1->GetMeshList();
     V1 = mesh[0]->data[0].vertices;
     F1 = mesh[0]->data[0].faces;
-    object1Tree.init(V1, F1);
+    Tree1.init(V1, F1);
 
     // Initialize object2 tree
     mesh = autoModel2->GetMeshList();
     V2 = mesh[0]->data[0].vertices;
     F2 = mesh[0]->data[0].faces;
-    object2Tree.init(V2, F2);
+    Tree2.init(V2, F2);
 
     // Creating each object's biggest bounding box 
-    AlignedBoxTransformation(object1Tree.m_box, cube1);
-    AlignedBoxTransformation(object2Tree.m_box, cube2);
+    AlignedBoxTransformation(Tree1.m_box, cube1);
+    AlignedBoxTransformation(Tree2.m_box, cube2);
 
     got_collision = true;
     velocity_x = 0.001;
@@ -130,7 +130,7 @@ void BasicScene::Update(const Program& program, const Eigen::Matrix4f& proj, con
 
     autoModel1->Translate({ velocity_x, velocity_y, 0 });
 
-    if (got_collision && Collision(&object1Tree, &object2Tree, 0))
+    if (got_collision && Collision(&Tree1, &Tree2, 0))
     {
         autoModel1->Rotate(0.0, Axis::Z);
         autoModel2->Rotate(0.0, Axis::Z);
@@ -209,33 +209,35 @@ void BasicScene::AlignedBoxTransformation(Eigen::AlignedBox<double, 3>& aligned_
     Eigen::RowVector3d TopLeftCeil = aligned_box.corner(aligned_box.TopLeftCeil);
     Eigen::RowVector3d TopLeftFloor = aligned_box.corner(aligned_box.TopLeftFloor);
 
+
+
     // Update the cube with the aligned box coordinates
     Eigen::MatrixXd V, VN, T;
     Eigen::MatrixXi F;
 
     V.resize(8, 3);
     F.resize(12, 3);
-    V.row(0) = BottomLeftFloor;
-    V.row(1) = BottomRightFloor;
-    V.row(2) = TopLeftFloor;
-    V.row(3) = TopRightFloor;
-    V.row(4) = BottomLeftCeil;
-    V.row(5) = BottomRightCeil;
-    V.row(6) = TopLeftCeil;
-    V.row(7) = TopRightCeil;
-    F.row(0) = Eigen::Vector3i(0, 1, 3);
-    F.row(1) = Eigen::Vector3i(3, 2, 0);
-    F.row(2) = Eigen::Vector3i(4, 5, 7);
-    F.row(3) = Eigen::Vector3i(7, 6, 4);
-    F.row(4) = Eigen::Vector3i(0, 4, 6);
-    F.row(5) = Eigen::Vector3i(6, 2, 0);
-    F.row(6) = Eigen::Vector3i(5, 7, 3);
-    F.row(7) = Eigen::Vector3i(7, 3, 1);
-    F.row(8) = Eigen::Vector3i(2, 6, 7);
-    F.row(9) = Eigen::Vector3i(7, 3, 2);
-    F.row(10) = Eigen::Vector3i(4, 5, 1);
-    F.row(11) = Eigen::Vector3i(1, 0, 4);
+    V.row(0) = TopLeftCeil;
+    V.row(1) = TopRightCeil;
+    V.row(2) = BottomLeftCeil;
+    V.row(3) = BottomRightCeil;
+    V.row(4) = TopLeftFloor;
+    V.row(5) = TopRightFloor;
+    V.row(6) = BottomLeftFloor;
+    V.row(7) = BottomRightFloor;
 
+    F.row(0) = Eigen::Vector3i(6, 7, 5);
+    F.row(1) = Eigen::Vector3i(5, 4, 6);
+    F.row(2) = Eigen::Vector3i(2, 3, 1);
+    F.row(3) = Eigen::Vector3i(1, 0, 2);
+    F.row(4) = Eigen::Vector3i(6, 4, 0);
+    F.row(5) = Eigen::Vector3i(0, 4, 6);
+    F.row(6) = Eigen::Vector3i(3, 1, 5);
+    F.row(7) = Eigen::Vector3i(3, 5, 7);
+    F.row(8) = Eigen::Vector3i(4, 0, 1);
+    F.row(9) = Eigen::Vector3i(1, 5, 4);
+    F.row(10) = Eigen::Vector3i(2, 3, 7);
+    F.row(11) = Eigen::Vector3i(7, 6, 2);
     igl::per_vertex_normals(V, F, VN);
     T = Eigen::MatrixXd::Zero(V.rows(), 2);
 
@@ -444,6 +446,6 @@ bool BasicScene::Boxes_Intersection(Eigen::AlignedBox<double, 3>& aligned_box1, 
     if (R0 + R1 < R) 
         return false;
 
-    return true; // all conditions are satisfied 
+    return true; //ready
 }
 
