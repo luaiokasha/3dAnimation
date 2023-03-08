@@ -65,10 +65,10 @@ void Scene::ScrollCallback(Viewport* viewport, int x, int y, int xoffset, int yo
     // note: there's a (small) chance the button state here precedes the mouse press/release event
     auto system = camera->GetRotation().transpose();
     if (pickedModel) {
-        pickedModel->TranslateInSystem(system, {0, 0, -float(yoffset) * 0.3f});
+        pickedModel->TranslateInSystem(system, {0, 0, -float(yoffset)});
         pickedToutAtPress = pickedModel->GetTout();
     } else {
-        camera->TranslateInSystem(system, {0, 0, -float(yoffset) * 0.3f });
+        camera->TranslateInSystem(system, {0, 0, -float(yoffset)});
         cameraToutAtPress = camera->GetTout();
     }
 }
